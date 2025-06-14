@@ -111,9 +111,9 @@ Special thanks to:
 
 ## Contact
 
-- **Project Lead**: [Your Name](https://github.com/yourusername)
-- **Email**: your.email@example.com
-- **GitHub**: [https://github.com/yourusername/codehermit](https://github.com/yourusername/codehermit)
+- **Project Lead**: [JKP](https://github.com/JKP2599)
+- **Email**: jatinkishorepatel@gmail.com
+- **GitHub**: [https://github.com/JKP2599/CodeHermit](https://github.com/JKP2599/CodeHermit)
 
 ---
 
