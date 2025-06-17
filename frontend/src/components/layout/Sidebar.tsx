@@ -81,8 +81,6 @@ export const Sidebar = () => {
       setSelectedModel('');
       setMetrics(null);
       setSelectedDevice('gpu');
-      // Clear all localStorage
-      localStorage.clear();
       // Reload the page
       window.location.reload();
     } catch (error) {
@@ -118,7 +116,7 @@ export const Sidebar = () => {
               mb: 2,
               fontWeight: 700,
               letterSpacing: 2,
-              fontFamily: 'Impact, Montserrat, Inter, sans-serif',
+              fontFamily: 'Segoe UI Black, Montserrat, Inter, sans-serif',
               textAlign: 'center',
               fontSize: '2rem',
               color: 'primary.main',

@@ -1,38 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Box, Paper, TextField, Button, Typography, CircularProgress } from '@mui/material';
 import { reviewCode } from '../../services/api';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 
-const STORAGE_KEY = 'code_review_state';
-
-interface ReviewState {
-  code: string;
-  review: string;
-}
-
 export const CodeReviewer = () => {
-  const [state, setState] = useState<ReviewState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : { code: '', review: '' };
-  });
+  const [code, setCode] = useState('');
+  const [review, setReview] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
-
   const handleReview = async () => {
-    if (!state.code.trim()) return;
+    if (!code.trim()) return;
     
     setLoading(true);
     try {
-      const result = await reviewCode(state.code);
+      const result = await reviewCode(code);
       const reviewText = result.issues?.[0] || result.response || '';
-      setState(prev => ({
-        ...prev,
-        review: reviewText
-      }));
+      setReview(reviewText);
     } catch (error) {
       console.error('Error reviewing code:', error);
     } finally {
@@ -70,8 +54,8 @@ export const CodeReviewer = () => {
               fullWidth
               minRows={4}
               maxRows={8}
-              value={state.code}
-              onChange={(e) => setState(prev => ({ ...prev, code: e.target.value }))}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
               placeholder="Paste your code here for review..."
               variant="outlined"
               sx={{ flex: 1 }}
@@ -79,7 +63,7 @@ export const CodeReviewer = () => {
             <Button
               variant="contained"
               onClick={handleReview}
-              disabled={loading || !state.code.trim()}
+              disabled={loading || !code.trim()}
               sx={{ mt: 2, alignSelf: 'flex-end' }}
             >
               {loading ? <CircularProgress size={24} /> : 'Review Code'}
@@ -98,7 +82,7 @@ export const CodeReviewer = () => {
           }}
         >
           <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-            {state.review || 'Review results will appear here...'}
+            {review || 'Review results will appear here...'}
           </pre>
         </Paper>
       </Box>
