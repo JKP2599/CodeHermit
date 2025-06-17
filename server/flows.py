@@ -31,7 +31,19 @@ class GenerateReviewFlow(Flow[FlowState]):
                     "options": {
                         "num_gpu": 1,  # Use 1 GPU
                         "num_thread": 4,  # Adjust based on your CPU
-                        "gpu_layers": -1  # Use all available GPU layers
+                        "gpu_layers": 35,  # Use 35 layers on GPU (optimal for 7B models)
+                        "num_ctx": 4096,  # Context window size
+                        "num_batch": 512,  # Batch size for inference
+                        "num_gqa": 8,  # Number of grouped-query attention heads
+                        "rope_scaling": None,  # No RoPE scaling
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "repeat_penalty": 1.1,
+                        "mirostat": 0,
+                        "mirostat_eta": 0.1,
+                        "mirostat_tau": 5.0,
+                        "seed": 42
                     }
                 }
             )
