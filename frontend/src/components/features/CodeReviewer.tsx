@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Box, Paper, TextField, Button, Typography, CircularProgress } from '@mui/material';
 import { reviewCode } from '../../services/api';
-import { ResizableBox } from 'react-resizable';
-import 'react-resizable/css/styles.css';
+import { ResizableBox } from '../shared/ResizableBox';
 
 export const CodeReviewer = () => {
   const [code, setCode] = useState('');
@@ -25,20 +24,25 @@ export const CodeReviewer = () => {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Code Reviewer
-      </Typography>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
+        <Typography variant="h6">
+          Code Reviewer
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={handleReview}
+          disabled={loading || !code.trim()}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Review Code'}
+        </Button>
+      </Box>
       
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, px: 2 }}>
         <ResizableBox
-          width={Infinity}
-          height={200}
-          minConstraints={[Infinity, 100]}
-          maxConstraints={[Infinity, 400]}
-          axis="y"
-          resizeHandles={['s']}
-          style={{ marginBottom: '16px' }}
+          initialHeight={200}
+          minHeight={100}
+          maxHeight={400}
         >
           <Paper 
             elevation={3} 
@@ -60,14 +64,6 @@ export const CodeReviewer = () => {
               variant="outlined"
               sx={{ flex: 1 }}
             />
-            <Button
-              variant="contained"
-              onClick={handleReview}
-              disabled={loading || !code.trim()}
-              sx={{ mt: 2, alignSelf: 'flex-end' }}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Review Code'}
-            </Button>
           </Paper>
         </ResizableBox>
 

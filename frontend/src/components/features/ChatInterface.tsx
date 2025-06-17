@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import { Box, Paper, TextField, Button, Typography, CircularProgress } from '@mui/material';
 import { sendMessage } from '../../services/api';
-import { ResizableBox } from 'react-resizable';
-import 'react-resizable/css/styles.css';
+import { ResizableBox } from '../shared/ResizableBox';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -46,12 +45,21 @@ export const ChatInterface = () => {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Chat
-      </Typography>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
+        <Typography variant="h6">
+          Chat
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={handleSend}
+          disabled={loading || !input.trim()}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Send'}
+        </Button>
+      </Box>
       
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, px: 2 }}>
         <Paper 
           elevation={3} 
           sx={{ 
@@ -90,13 +98,9 @@ export const ChatInterface = () => {
         </Paper>
 
         <ResizableBox
-          width={Infinity}
-          height={150}
-          minConstraints={[Infinity, 100]}
-          maxConstraints={[Infinity, 300]}
-          axis="y"
-          resizeHandles={['n']}
-          style={{ marginTop: '16px' }}
+          initialHeight={150}
+          minHeight={100}
+          maxHeight={300}
         >
           <Paper 
             elevation={3} 
@@ -120,14 +124,6 @@ export const ChatInterface = () => {
               disabled={loading}
               sx={{ flex: 1 }}
             />
-            <Button
-              variant="contained"
-              onClick={handleSend}
-              disabled={loading || !input.trim()}
-              sx={{ mt: 2, alignSelf: 'flex-end' }}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Send'}
-            </Button>
           </Paper>
         </ResizableBox>
       </Box>
