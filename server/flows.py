@@ -30,7 +30,8 @@ class GenerateReviewFlow(Flow[FlowState]):
                     "stream": False,
                     "options": {
                         "num_gpu": 1,  # Use 1 GPU
-                        "num_thread": 4  # Adjust based on your CPU
+                        "num_thread": 4,  # Adjust based on your CPU
+                        "gpu_layers": -1  # Use all available GPU layers
                     }
                 }
             )

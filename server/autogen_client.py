@@ -1,14 +1,17 @@
 """
-Helper to call AutoGen for multi-agent dialogue.
+Helper to call AutoGen for multi-agent dialogue using local Ollama models.
 """
 from autogen import ConversableAgent, GroupChatManager
 import os
-import json
+from dotenv import load_dotenv
 from typing import Union, Dict, Any
+
+# Load environment variables
+load_dotenv()
 
 def run_autogen_chat(system_messages: list[str], user_message: str) -> Union[str, Dict[str, Any]]:
     """
-    Run a multi-agent chat session using AutoGen.
+    Run a multi-agent chat session using AutoGen with local Ollama models.
     
     Args:
         system_messages: List of system messages for each agent
@@ -18,10 +21,18 @@ def run_autogen_chat(system_messages: list[str], user_message: str) -> Union[str
         Union[str, Dict[str, Any]]: The response from the agents, either as a string or a structured dict
     """
     try:
-        # Configure LLM settings (only allowed fields)
+        # Configure LLM settings for local Ollama model
         llm_config = {
             "config_list": [{
-                "model": os.getenv("OLLAMA_MODEL", "codellama:7b-instruct")
+                "model": os.getenv("OLLAMA_MODEL", "codellama:7b-instruct"),
+                "base_url": "http://localhost:11434",
+                "api_type": "open_ai",
+                "api_key": "not-needed",  # Ollama doesn't require an API key
+                "options": {
+                    "num_gpu": 1,  # Use 1 GPU
+                    "num_thread": 4,  # Adjust based on your CPU
+                    "gpu_layers": -1  # Use all available GPU layers
+                }
             }],
             "temperature": 0.7,
             "timeout": 60
@@ -41,37 +52,16 @@ def run_autogen_chat(system_messages: list[str], user_message: str) -> Union[str
         manager = GroupChatManager(
             groupchat=agents,
             llm_config=llm_config,
-            messages=[],
-            max_round=5
+            messages=[{"role": "user", "content": user_message}]
         )
         
-        # Run the chat and collect results
-        chat_result = manager.run_stream(user_message)
+        # Process the chat
+        chat_result = manager.run()
         
-        # Format the response
+        # Return the final response
         if isinstance(chat_result, dict):
-            if "summary" in chat_result:
-                return {
-                    "response": chat_result["summary"],
-                    "status": "success"
-                }
-            return {
-                "response": json.dumps(chat_result, indent=2),
-                "status": "success"
-            }
-        elif isinstance(chat_result, str):
-            return {
-                "response": chat_result,
-                "status": "success"
-            }
-        else:
-            return {
-                "response": str(chat_result),
-                "status": "success"
-            }
-            
+            return chat_result
+        return {"response": str(chat_result)}
+        
     except Exception as e:
-        return {
-            "response": f"Error in AutoGen chat: {str(e)}",
-            "status": "error"
-        } 
+        return {"error": str(e)} 

@@ -1,91 +1,106 @@
-import { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
-import { CodeBlock } from '../shared/CodeBlock';
+import { useState, useEffect } from 'react';
+import { Box, Paper, TextField, Button, Typography, CircularProgress } from '@mui/material';
 import { generateCode } from '../../services/api';
-import type { CodeGenerationResponse } from '../../services/api';
+import { ResizableBox } from 'react-resizable';
+import 'react-resizable/css/styles.css';
+
+const STORAGE_KEY = 'code_generator_state';
+
+interface GeneratorState {
+  prompt: string;
+  generatedCode: string;
+}
 
 export const CodeGenerator = () => {
-  const [prompt, setPrompt] = useState('');
+  const [state, setState] = useState<GeneratorState>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : { prompt: '', generatedCode: '' };
+  });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<CodeGenerationResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-
+    if (!state.prompt.trim()) return;
+    
     setLoading(true);
-    setError(null);
-    setResult(null);
-
     try {
-      const response = await generateCode({ prompt });
-      setResult(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const result = await generateCode(state.prompt);
+      setState(prev => ({
+        ...prev,
+        generatedCode: result.code || result.response || ''
+      }));
+    } catch (error) {
+      console.error('Error generating code:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        Generate Code
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        Code Generator
       </Typography>
+      
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+        <ResizableBox
+          width={Infinity}
+          height={200}
+          minConstraints={[Infinity, 100]}
+          maxConstraints={[Infinity, 400]}
+          axis="y"
+          resizeHandles={['s']}
+          style={{ marginBottom: '16px' }}
+        >
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 2, 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <TextField
+              multiline
+              fullWidth
+              minRows={4}
+              maxRows={8}
+              value={state.prompt}
+              onChange={(e) => setState(prev => ({ ...prev, prompt: e.target.value }))}
+              placeholder="Describe the code you want to generate..."
+              variant="outlined"
+              sx={{ flex: 1 }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleGenerate}
+              disabled={loading || !state.prompt.trim()}
+              sx={{ mt: 2, alignSelf: 'flex-end' }}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Generate Code'}
+            </Button>
+          </Paper>
+        </ResizableBox>
 
-      <TextField
-        fullWidth
-        multiline
-        rows={4}
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Enter your code generation prompt..."
-        sx={{ mb: 2 }}
-      />
-
-      <Button
-        variant="contained"
-        onClick={handleGenerate}
-        disabled={loading || !prompt.trim()}
-        sx={{ mb: 3 }}
-      >
-        {loading ? <CircularProgress size={24} /> : 'Generate Code'}
-      </Button>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {result && (
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Generated Code
-          </Typography>
-          <CodeBlock code={result.code} />
-
-          {result.issues && result.issues.length > 0 && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Review Comments
-              </Typography>
-              {result.issues.map((issue, index) => (
-                <Alert key={index} severity="info" sx={{ mb: 1 }}>
-                  {issue}
-                </Alert>
-              ))}
-            </Box>
-          )}
-        </Box>
-      )}
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 2, 
+            flex: 1,
+            minHeight: 0,
+            overflow: 'auto',
+            bgcolor: 'background.default'
+          }}
+        >
+          <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+            {state.generatedCode || 'Generated code will appear here...'}
+          </pre>
+        </Paper>
+      </Box>
     </Box>
   );
 }; 

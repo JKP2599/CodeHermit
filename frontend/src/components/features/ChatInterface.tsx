@@ -1,23 +1,28 @@
-import { useState, useRef, useEffect } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  CircularProgress,
-  Avatar,
-} from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { sendChatMessage } from '../../services/api';
-import type { ChatMessage } from '../../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { Box, Paper, TextField, Button, Typography, CircularProgress } from '@mui/material';
+import { sendMessage } from '../../services/api';
+import { ResizableBox } from 'react-resizable';
+import 'react-resizable/css/styles.css';
+
+const STORAGE_KEY = 'chat_messages';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export const ChatInterface = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -30,22 +35,15 @@ export const ChatInterface = () => {
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: input.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = input.trim();
     setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
     try {
-      const response = await sendChatMessage({ message: userMessage.content });
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: response.response,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const result = await sendMessage(userMessage);
+      const response = result.response || '';
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -61,84 +59,90 @@ export const ChatInterface = () => {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        Chat with Assistant
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
+      <Typography variant="h6" sx={{ mb: 1 }}>
+        Chat
       </Typography>
-
-      <Paper
-        sx={{
-          flexGrow: 1,
-          mb: 2,
-          p: 2,
-          overflow: 'auto',
-          backgroundColor: 'background.paper',
-        }}
-      >
-        <AnimatePresence>
+      
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 2, 
+            flex: 1,
+            minHeight: 0,
+            overflow: 'auto',
+            bgcolor: 'background.default'
+          }}
+        >
           {messages.map((message, index) => (
-            <motion.div
+            <Box
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+              sx={{
+                display: 'flex',
+                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                mb: 2
+              }}
             >
-              <Box
+              <Paper
+                elevation={1}
                 sx={{
-                  display: 'flex',
-                  mb: 2,
-                  flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
+                  p: 2,
+                  maxWidth: '80%',
+                  bgcolor: message.role === 'user' ? 'primary.main' : 'background.paper',
+                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
                 }}
               >
-                <Avatar
-                  sx={{
-                    bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main',
-                    width: 32,
-                    height: 32,
-                    mr: message.role === 'user' ? 0 : 1,
-                    ml: message.role === 'user' ? 1 : 0,
-                  }}
-                >
-                  {message.role === 'user' ? 'U' : 'A'}
-                </Avatar>
-                <Paper
-                  sx={{
-                    p: 2,
-                    maxWidth: '70%',
-                    backgroundColor:
-                      message.role === 'user' ? 'primary.dark' : 'background.paper',
-                    color: message.role === 'user' ? 'white' : 'text.primary',
-                  }}
-                >
-                  <Typography variant="body1">{message.content}</Typography>
-                </Paper>
-              </Box>
-            </motion.div>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {message.content}
+                </pre>
+              </Paper>
+            </Box>
           ))}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
-      </Paper>
+          <div ref={messagesEndRef} />
+        </Paper>
 
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <TextField
-          fullWidth
-          multiline
-          maxRows={4}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message here..."
-          disabled={loading}
-        />
-        <Button
-          variant="contained"
-          onClick={handleSend}
-          disabled={loading || !input.trim()}
-          sx={{ minWidth: 100 }}
+        <ResizableBox
+          width={Infinity}
+          height={150}
+          minConstraints={[Infinity, 100]}
+          maxConstraints={[Infinity, 300]}
+          axis="y"
+          resizeHandles={['n']}
+          style={{ marginTop: '16px' }}
         >
-          {loading ? <CircularProgress size={24} /> : <SendIcon />}
-        </Button>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 2, 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <TextField
+              multiline
+              fullWidth
+              minRows={2}
+              maxRows={6}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message here..."
+              variant="outlined"
+              disabled={loading}
+              sx={{ flex: 1 }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleSend}
+              disabled={loading || !input.trim()}
+              sx={{ mt: 2, alignSelf: 'flex-end' }}
+            >
+              {loading ? <CircularProgress size={24} /> : 'Send'}
+            </Button>
+          </Paper>
+        </ResizableBox>
       </Box>
     </Box>
   );
