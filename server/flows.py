@@ -18,7 +18,10 @@ class GenerateReviewFlow(Flow[FlowState]):
     def step_generate(self, prompt: str) -> str:
         """⇨ call OllamaClient to generate code from prompt + context"""
         self.state.prompt = prompt
-        model = os.getenv("OLLAMA_MODEL", "codellama:7b-instruct")
+        model = os.getenv("OLLAMA_MODEL")  # Get model from environment
+        
+        if not model:
+            return "Error: No model selected. Please select a model from the UI."
         
         try:
             # Call Ollama API with GPU configuration
@@ -31,11 +34,11 @@ class GenerateReviewFlow(Flow[FlowState]):
                     "options": {
                         "num_gpu": 1,  # Use 1 GPU
                         "num_thread": 4,  # Adjust based on your CPU
-                        "gpu_layers": 35,  # Use 35 layers on GPU (optimal for 7B models)
-                        "num_ctx": 4096,  # Context window size
-                        "num_batch": 512,  # Batch size for inference
-                        "num_gqa": 8,  # Number of grouped-query attention heads
-                        "rope_scaling": None,  # No RoPE scaling
+                        "gpu_layers": 20,  # Reduced layers for 4GB GPU
+                        "num_ctx": 2048,  # Reduced context window
+                        "num_batch": 256,  # Reduced batch size
+                        "num_gqa": 4,  # Reduced attention heads
+                        "rope_scaling": None,
                         "temperature": 0.7,
                         "top_p": 0.95,
                         "top_k": 40,
@@ -108,6 +111,11 @@ class ConversationFlow(Flow[FlowState]):
         """Handle conversation with context awareness"""
         self.state.prompt = message
         
+        # Check if model is selected
+        model = os.getenv("OLLAMA_MODEL")
+        if not model:
+            return "Error: No model selected. Please select a model from the UI."
+        
         try:
             # Use AutoGen for multi-agent conversation
             system_messages = [
@@ -120,6 +128,15 @@ class ConversationFlow(Flow[FlowState]):
                 system_messages=system_messages,
                 user_message=message
             )
-            return response
+            
+            # Handle different response types
+            if isinstance(response, dict):
+                if 'error' in response:
+                    return f"Error: {response['error']}"
+                if 'response' in response:
+                    return response['response']
+                return str(response)
+            return str(response)
+            
         except Exception as e:
             return f"Error during chat: {str(e)}" 
