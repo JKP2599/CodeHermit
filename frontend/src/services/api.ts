@@ -16,12 +16,14 @@ export interface SystemMetrics {
 export interface CodeGenerationRequest {
   prompt: string;
   model?: string;
+  device?: string;
 }
 
 export interface CodeGenerationResponse {
-  code: string;
-  issues: string[];
-  status: string;
+  code?: string;
+  response?: string;
+  issues?: string[];
+  status?: string;
 }
 
 export interface CodeReviewRequest {
@@ -68,17 +70,31 @@ export const getAvailableModels = async (): Promise<string[]> => {
   return response.data;
 };
 
-export const generateCode = async (request: CodeGenerationRequest): Promise<CodeGenerationResponse> => {
-  const response = await api.post<CodeGenerationResponse>('/generate', request);
+export const restartModel = async (): Promise<void> => {
+  await api.post('/restart');
+};
+
+export const quitApp = async (): Promise<void> => {
+  await api.post('/quit');
+};
+
+export const generateCode = async (prompt: string): Promise<CodeGenerationResponse> => {
+  const response = await api.post<CodeGenerationResponse>('/generate', { prompt });
   return response.data;
 };
 
-export const reviewCode = async (request: CodeReviewRequest): Promise<CodeReviewResponse> => {
-  const response = await api.post<CodeReviewResponse>('/review', request);
+export const reviewCode = async (code: string): Promise<CodeGenerationResponse> => {
+  const response = await api.post<CodeGenerationResponse>('/review', { prompt: code });
   return response.data;
 };
 
-export const sendChatMessage = async (request: ChatRequest): Promise<ChatResponse> => {
-  const response = await api.post<ChatResponse>('/chat', request);
+export const sendMessage = async (message: string): Promise<CodeGenerationResponse> => {
+  const response = await api.post<CodeGenerationResponse>('/chat', { message });
   return response.data;
+};
+
+export const resetApp = async (): Promise<void> => {
+  await api.post('/reset');
+  // Clear all local storage
+  localStorage.clear();
 }; 

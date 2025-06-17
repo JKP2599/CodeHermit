@@ -30,7 +30,20 @@ class GenerateReviewFlow(Flow[FlowState]):
                     "stream": False,
                     "options": {
                         "num_gpu": 1,  # Use 1 GPU
-                        "num_thread": 4  # Adjust based on your CPU
+                        "num_thread": 4,  # Adjust based on your CPU
+                        "gpu_layers": 35,  # Use 35 layers on GPU (optimal for 7B models)
+                        "num_ctx": 4096,  # Context window size
+                        "num_batch": 512,  # Batch size for inference
+                        "num_gqa": 8,  # Number of grouped-query attention heads
+                        "rope_scaling": None,  # No RoPE scaling
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "repeat_penalty": 1.1,
+                        "mirostat": 0,
+                        "mirostat_eta": 0.1,
+                        "mirostat_tau": 5.0,
+                        "seed": 42
                     }
                 }
             )
@@ -71,9 +84,18 @@ class GenerateReviewFlow(Flow[FlowState]):
             return f"Error during code review: {str(e)}"
 
     @listen(step_review)
-    def step_finish(self, review: str) -> str:
+    def step_finish(self, review) -> str:
         """⇨ combine code + fixes, return final output"""
-        self.state.issues = review.splitlines()
+        print(f"[DEBUG] step_finish review type: {type(review)}, value: {review}")
+        if isinstance(review, dict) and 'issues' in review:
+            self.state.issues = review['issues']
+        elif isinstance(review, str):
+            self.state.issues = review.splitlines()
+        else:
+            try:
+                self.state.issues = str(review).splitlines()
+            except Exception:
+                self.state.issues = [str(review)]
         return {
             "code": self.state.result,
             "issues": self.state.issues,

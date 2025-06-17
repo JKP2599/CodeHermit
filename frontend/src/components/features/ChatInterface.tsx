@@ -1,20 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Paper,
-  CircularProgress,
-  Avatar,
-} from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { sendChatMessage } from '../../services/api';
-import type { ChatMessage } from '../../services/api';
+import { useState, useRef } from 'react';
+import { Box, Paper, TextField, Button, Typography, CircularProgress } from '@mui/material';
+import { sendMessage } from '../../services/api';
+import { ResizableBox } from '../shared/ResizableBox';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export const ChatInterface = () => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,29 +18,18 @@ export const ChatInterface = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: input.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    const userMessage = input.trim();
     setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
     try {
-      const response = await sendChatMessage({ message: userMessage.content });
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: response.response,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
+      const result = await sendMessage(userMessage);
+      const response = result.response || '';
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -61,84 +45,87 @@ export const ChatInterface = () => {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h5" sx={{ mb: 3 }}>
-        Chat with Assistant
-      </Typography>
-
-      <Paper
-        sx={{
-          flexGrow: 1,
-          mb: 2,
-          p: 2,
-          overflow: 'auto',
-          backgroundColor: 'background.paper',
-        }}
-      >
-        <AnimatePresence>
-          {messages.map((message, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  mb: 2,
-                  flexDirection: message.role === 'user' ? 'row-reverse' : 'row',
-                }}
-              >
-                <Avatar
-                  sx={{
-                    bgcolor: message.role === 'user' ? 'primary.main' : 'secondary.main',
-                    width: 32,
-                    height: 32,
-                    mr: message.role === 'user' ? 0 : 1,
-                    ml: message.role === 'user' ? 1 : 0,
-                  }}
-                >
-                  {message.role === 'user' ? 'U' : 'A'}
-                </Avatar>
-                <Paper
-                  sx={{
-                    p: 2,
-                    maxWidth: '70%',
-                    backgroundColor:
-                      message.role === 'user' ? 'primary.dark' : 'background.paper',
-                    color: message.role === 'user' ? 'white' : 'text.primary',
-                  }}
-                >
-                  <Typography variant="body1">{message.content}</Typography>
-                </Paper>
-              </Box>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
-      </Paper>
-
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <TextField
-          fullWidth
-          multiline
-          maxRows={4}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message here..."
-          disabled={loading}
-        />
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
+        <Typography variant="h6">
+          Chat
+        </Typography>
         <Button
           variant="contained"
           onClick={handleSend}
           disabled={loading || !input.trim()}
-          sx={{ minWidth: 100 }}
         >
-          {loading ? <CircularProgress size={24} /> : <SendIcon />}
+          {loading ? <CircularProgress size={24} /> : 'Send'}
         </Button>
+      </Box>
+      
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0, px: 2 }}>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 2, 
+            flex: 1,
+            minHeight: 0,
+            overflow: 'auto',
+            bgcolor: 'background.default'
+          }}
+        >
+          {messages.map((message, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: 'flex',
+                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                mb: 2
+              }}
+            >
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  maxWidth: '80%',
+                  bgcolor: message.role === 'user' ? 'primary.main' : 'background.paper',
+                  color: message.role === 'user' ? 'primary.contrastText' : 'text.primary'
+                }}
+              >
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {message.content}
+                </pre>
+              </Paper>
+            </Box>
+          ))}
+          <div ref={messagesEndRef} />
+        </Paper>
+
+        <ResizableBox
+          initialHeight={150}
+          minHeight={100}
+          maxHeight={300}
+        >
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 2, 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <TextField
+              multiline
+              fullWidth
+              minRows={2}
+              maxRows={6}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message here..."
+              variant="outlined"
+              disabled={loading}
+              sx={{ flex: 1 }}
+            />
+          </Paper>
+        </ResizableBox>
       </Box>
     </Box>
   );
