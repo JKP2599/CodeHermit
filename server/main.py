@@ -4,6 +4,9 @@ FastAPI backend for Local Code Assistant
 - /review:   CrewAI + AutoGen deep critique
 - /chat:     ConversationFlow
 - /metrics:  Prometheus CPU/GPU stats
+- /embed:    File embedding
+- /execute:  Code execution
+- /analyze:  Code analysis
 Load settings from .env via python-dotenv
 """
 from fastapi import FastAPI
@@ -13,11 +16,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 from flows import GenerateReviewFlow, ConversationFlow
-import psutil
+from code_assistant_rust import (
+    get_system_metrics,
+    get_ollama_models,
+    execute_code,
+    analyze_code,
+    index_and_embed
+)
 import os
-import subprocess
 from dotenv import load_dotenv
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 class Settings(BaseSettings):
     OLLAMA_MODEL: str
@@ -32,6 +40,13 @@ class MessageRequest(BaseModel):
     message: str
     model: Optional[str] = None
 
+class CodeRequest(BaseModel):
+    code: str
+    timeout_ms: Optional[int] = 5000
+
+class EmbedRequest(BaseModel):
+    path: str
+
 load_dotenv()
 settings = Settings()
 app = FastAPI(title="Local Code Assistant API")
@@ -39,10 +54,10 @@ app = FastAPI(title="Local Code Assistant API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Mount static files
@@ -56,25 +71,15 @@ async def root():
 @app.get("/models")
 async def get_models() -> List[str]:
     """Get list of available Ollama models"""
-    try:
-        result = subprocess.run(['ollama', 'list'], capture_output=True, text=True)
-        if result.returncode == 0:
-            lines = result.stdout.strip().split('\n')[1:]  # Skip header
-            models = [line.split()[0] for line in lines if line.strip()]
-            return models
-        return []
-    except Exception as e:
-        return []
+    return get_ollama_models()
 
 @app.post("/generate")
 async def generate(request: PromptRequest):
     """⇨ CREWAI FLOW: launch GenerateReviewFlow with one Coder agent"""
     flow = GenerateReviewFlow(state={})
-    # Set model as env var for this request
     if request.model:
         os.environ["OLLAMA_MODEL"] = request.model
     result = flow.step_generate(request.prompt)
-    # Always return a dict
     if isinstance(result, dict):
         return result
     return {"code": result, "issues": [], "status": "success"}
@@ -104,28 +109,28 @@ async def chat(request: MessageRequest):
     return {"response": result}
 
 @app.get("/metrics")
-async def metrics():
-    """Return CPU/GPU usage via psutil and nvidia-smi"""
-    metrics = {
-        "cpu_percent": psutil.cpu_percent(),
-        "memory_percent": psutil.virtual_memory().percent,
-        "gpu_metrics": {}
-    }
-    
-    # Try to get GPU metrics if available
+async def metrics() -> Dict[str, Any]:
+    """Return CPU/GPU usage via Rust implementation"""
+    return get_system_metrics()
+
+@app.post("/embed")
+async def embed(request: EmbedRequest):
+    """Index and embed files from a directory"""
     try:
-        import subprocess
-        nvidia_smi = subprocess.check_output(["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total", "--format=csv,noheader,nounits"])
-        gpu_metrics = nvidia_smi.decode().strip().split(",")
-        metrics["gpu_metrics"] = {
-            "utilization": float(gpu_metrics[0]),
-            "memory_used": float(gpu_metrics[1]),
-            "memory_total": float(gpu_metrics[2])
-        }
-    except:
-        pass
-    
-    return metrics
+        index_and_embed(request.path, ".chroma")
+        return {"status": "success", "message": f"Indexed {request.path}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/execute")
+async def execute(request: CodeRequest):
+    """Execute code in a sandboxed environment"""
+    return execute_code(request.code, request.timeout_ms)
+
+@app.post("/analyze")
+async def analyze(request: CodeRequest):
+    """Analyze code complexity and metrics"""
+    return analyze_code(request.code)
 
 if __name__ == "__main__":
     import uvicorn

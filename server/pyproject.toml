@@ -1,0 +1,20 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "code_assistant_rust"
+version = "0.1.0"
+description = "Rust extensions for CodeHermit"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Rust",
+]
+
+[tool.maturin]
+python-source = "."
+module-name = "code_assistant_rust"
+features = ["pyo3/extension-module"] 
