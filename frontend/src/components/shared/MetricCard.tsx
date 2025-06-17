@@ -21,25 +21,26 @@ export const MetricCard = ({ title, value, unit, icon }: MetricCardProps) => {
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'background.paper',
+          p: 0.5,
         }}
       >
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <CardContent sx={{ p: '8px !important' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
             {icon && (
-              <Box sx={{ mr: 1, color: 'primary.main' }}>
+              <Box sx={{ mr: 0.5, color: 'primary.main', fontSize: '1rem' }}>
                 {icon}
               </Box>
             )}
-            <Typography variant="subtitle2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary">
               {title}
             </Typography>
           </Box>
-          <Typography variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
             {value}
             {unit && (
               <Typography
                 component="span"
-                variant="subtitle1"
+                variant="caption"
                 color="text.secondary"
                 sx={{ ml: 0.5 }}
               >

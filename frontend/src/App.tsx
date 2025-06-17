@@ -46,11 +46,12 @@ function App() {
           component="main"
           sx={{
             flexGrow: 1,
-            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-            ml: { sm: `${DRAWER_WIDTH}px` },
+            width: '100%',
+            maxWidth: '900px',
+            mx: 'auto',
           }}
         >
-          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 0, display: 'flex', justifyContent: 'center' }}>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -72,15 +73,17 @@ function App() {
             </Tabs>
           </Box>
 
-          <TabPanel value={tabValue} index={0}>
-            <CodeGenerator />
-          </TabPanel>
-          <TabPanel value={tabValue} index={1}>
-            <CodeReviewer />
-          </TabPanel>
-          <TabPanel value={tabValue} index={2}>
-            <ChatInterface />
-          </TabPanel>
+          <Box sx={{ px: 3 }}>
+            <TabPanel value={tabValue} index={0}>
+              <CodeGenerator />
+            </TabPanel>
+            <TabPanel value={tabValue} index={1}>
+              <CodeReviewer />
+            </TabPanel>
+            <TabPanel value={tabValue} index={2}>
+              <ChatInterface />
+            </TabPanel>
+          </Box>
         </Box>
       </Box>
     </ThemeProvider>

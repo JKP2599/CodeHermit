@@ -71,9 +71,18 @@ class GenerateReviewFlow(Flow[FlowState]):
             return f"Error during code review: {str(e)}"
 
     @listen(step_review)
-    def step_finish(self, review: str) -> str:
+    def step_finish(self, review) -> str:
         """⇨ combine code + fixes, return final output"""
-        self.state.issues = review.splitlines()
+        print(f"[DEBUG] step_finish review type: {type(review)}, value: {review}")
+        if isinstance(review, dict) and 'issues' in review:
+            self.state.issues = review['issues']
+        elif isinstance(review, str):
+            self.state.issues = review.splitlines()
+        else:
+            try:
+                self.state.issues = str(review).splitlines()
+            except Exception:
+                self.state.issues = [str(review)]
         return {
             "code": self.state.result,
             "issues": self.state.issues,

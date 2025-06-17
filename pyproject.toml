@@ -27,6 +27,11 @@ packages = ["server"]
 
 # Optional: uv-specific configuration
 [tool.uv]
+
+[tool.uv.workspace]
+members = [
+    "server",
+]
 # Example: set a custom index URL if needed
 # [[tool.uv.index]]
 # url = "https://pypi.org/simple"

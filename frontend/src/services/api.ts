@@ -68,6 +68,14 @@ export const getAvailableModels = async (): Promise<string[]> => {
   return response.data;
 };
 
+export const restartModel = async (): Promise<void> => {
+  await api.post('/restart');
+};
+
+export const quitApp = async (): Promise<void> => {
+  await api.post('/quit');
+};
+
 export const generateCode = async (request: CodeGenerationRequest): Promise<CodeGenerationResponse> => {
   const response = await api.post<CodeGenerationResponse>('/generate', request);
   return response.data;
